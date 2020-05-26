@@ -5,11 +5,11 @@
 #include "stm32f7xx_hal.h"
 
 #define PCA9685_DEFAULT_ADDRESS 0x80
-#define PCA9685_REGS 0x45
-#define PCA9685_PWMS 0x10
-#define PCA9685_FREQ 25000
+#define PCA9685_REGS 70
+#define PCA9685_PWMS 16
+#define PCA9685_FREQ 25000000
 #define PCA9685_SERVO_FREQ 50
-#define PCA9685_SERVO_PRESCALE  100u // == ((PCA9685_SERVO_FREQ) /((1ul<<12)* (PCA9685_SERVO_FREQ))-1)
+#define PCA9685_SERVO_PRESCALE  121u // == ((PCA9685_SERVO_FREQ) /((1ul<<12)* (PCA9685_SERVO_FREQ))-1)
 
 #define PCA9685_MODE1         0x00u
 #define PCA9685_MODE1_RESTART 0x80u
@@ -43,6 +43,11 @@
 
 #define PCA9685_LED_0_ON_L  0x06u
 
+// Initial values after reset
+#define PCA9685_MODE1_INITIAL_VALUE 0x11u
+#define PCA9685_MODE2_INITIAL_VALUE 0x04u
+
+
 #define PCA9685_MODE1_RESTART_WAIT 5
 
 #define PCA9685_OFF_MIN 150
@@ -64,7 +69,7 @@ typedef struct pca9685_s {
 	I2C_HandleTypeDef *hi2c;
 	uint8_t address;
 	union {
-		uint8_t pca9685_reg[PCA9685_REGS];
+		volatile uint8_t pca9685_reg[PCA9685_REGS];
 		struct {
 			union {
 				uint8_t MODE1;

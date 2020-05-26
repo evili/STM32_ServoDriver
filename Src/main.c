@@ -95,14 +95,15 @@ int main(void)
   MX_USART3_UART_Init();
   MX_USB_OTG_FS_PCD_Init();
   /* USER CODE BEGIN 2 */
-  pca9685_t servoDriver;
+  pca9685_t servoDriver = {0};
   status = pca9865_init(&servoDriver, &hi2c1, PCA9685_DEFAULT_ADDRESS);
   status = pca9865_load(&servoDriver);
   if(status == HAL_OK)
 	  HAL_UART_Transmit(&huart3, (uint8_t *) "SERVO DRIVER OK\n", 16, 10);
   else
 	  HAL_UART_Transmit(&huart3, (uint8_t *) "SERVO DRIVER BAD\n", 17, 10);
-  uint8_t servo = 15;
+
+  uint8_t servo = 0;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -119,9 +120,9 @@ int main(void)
 	  //HAL_Delay(1000);
 	  //status = pca9865_servo(&servoDriver,  0,  95);
 	  //HAL_Delay(1000);
-	  for(servo=0; servo<15;servo++) {
+	  for(servo=0; servo<2;servo++) {
 		  pca9865_pwm(&servoDriver, servo, 0, 375);
-		  HAL_Delay(250);
+		  HAL_Delay(500);
 		  pca9865_pwm(&servoDriver, servo, 0, 0);
 		  HAL_Delay(250);
 	  }
