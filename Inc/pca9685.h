@@ -7,6 +7,9 @@
 #define PCA9685_DEFAULT_ADDRESS 0x80
 #define PCA9685_REGS 0x45
 #define PCA9685_PWMS 0x10
+#define PCA9685_FREQ 25000
+#define PCA9685_SERVO_FREQ 50
+#define PCA9685_SERVO_PRESCALE  100u // == ((PCA9685_SERVO_FREQ) /((1ul<<12)* (PCA9685_SERVO_FREQ))-1)
 
 #define PCA9685_MODE1         0x00u
 #define PCA9685_MODE1_RESTART 0x80u
@@ -28,22 +31,29 @@
 #define PCA9685_MODE2_OUTNE_OUT  0x01u
 #define PCA9685_MODE2_OUTNE_HIZ  0x02u
 
+#define PCA9685_SUBADR1 0x02
+#define PCA9685_SUBADR2 0x03
+#define PCA9685_SUBADR3 0x04
+#define PCA9685_ALLCALL 0x05
+
+#define PCA9685_ALL_LED   0xFA
+#define PCA9685_PRE_SCALE 0xFE
+#define PCA9685_TEST_MODE 0xFF
+
+
 #define PCA9685_LED_0_ON_L  0x06u
 
-#define PCA9685_MODE1_RESTART_WAIT 1
+#define PCA9685_MODE1_RESTART_WAIT 5
 
+#define PCA9685_OFF_MIN 150
+#define PCA9685_OFF_MAX 600
 
 typedef struct pca9685_led_s {
 	union {
-		uint16_t LED_ON;
+		uint8_t LEDONOFF[4];
 		struct {
 			uint8_t LED_ON_L;
 			uint8_t LED_ON_H;
-		};
-	};
-	union {
-		uint16_t LED_OFF;
-		struct {
 			uint8_t LED_OFF_L;
 			uint8_t LED_OFF_H;
 		};
@@ -88,9 +98,11 @@ typedef struct pca9685_s {
 	};
 } pca9685_t;
 
-void pca9865_init(pca9685_t *pca, I2C_HandleTypeDef *hi2c, uint8_t address);
-HAL_StatusTypeDef  pca9865_load(pca9685_t *pca);
-HAL_StatusTypeDef  pca9865_pwm(pca9685_t *pca,  uint8_t num, uint16_t on, uint16_t off);
-HAL_StatusTypeDef  pca9865_servo(pca9685_t *pca,  uint8_t num, uint16_t angle);
+HAL_StatusTypeDef pca9865_init(pca9685_t *pca, I2C_HandleTypeDef *hi2c, uint8_t address);
+HAL_StatusTypeDef pca9865_restart(pca9685_t *pca);
+HAL_StatusTypeDef pca9865_set_prescale(pca9685_t *pca, uint8_t prescale);
+HAL_StatusTypeDef pca9865_load(pca9685_t *pca);
+HAL_StatusTypeDef pca9865_pwm(pca9685_t *pca,  uint8_t num, uint16_t on, uint16_t off);
+HAL_StatusTypeDef pca9865_servo(pca9685_t *pca,  uint8_t num, double angle);
 
 #endif // __PCA9685_H__
