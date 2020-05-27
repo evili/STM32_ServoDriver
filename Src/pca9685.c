@@ -10,27 +10,39 @@
 
 HAL_StatusTypeDef pca9865_init(pca9685_t *pca, I2C_HandleTypeDef *hi2c, uint8_t address) {
 	HAL_StatusTypeDef status;
-	uint8_t cmd;
+	uint8_t cmd, oldmode;
 	pca->address = address;
 	pca->hi2c = hi2c;
+	status = HAL_I2C_Mem_Read(pca->hi2c, pca->address, PCA9685_MODE1, I2C_MEMADD_SIZE_8BIT, &oldmode, 1, 1);
+	oldmode |= PCA9685_MODE1_AI;
+	status = HAL_I2C_Mem_Write(pca->hi2c, pca->address, PCA9685_MODE1, I2C_MEMADD_SIZE_8BIT, &oldmode, 1, 1);
+	cmd = PCA9685_LED_FULL_OFF;
+	status = HAL_I2C_Mem_Write(pca->hi2c, pca->address, PCA9685_ALL_LED_OFF_H, I2C_MEMADD_SIZE_8BIT, &cmd, 1, 1);
 	// Soft Reset
-	// status = HAL_I2C_Master_Transmit(pca->hi2c, 0x06u, &swrst, 1, 1);
-	cmd = PCA9685_MODE1_INITIAL_VALUE | PCA9685_MODE1_AI;
-	status = HAL_I2C_Mem_Write(pca->hi2c, pca->address, PCA9685_MODE1, I2C_MEMADD_SIZE_8BIT, &cmd, 1, 1);
-	cmd = PCA9685_MODE2_INITIAL_VALUE;
-	status = HAL_I2C_Mem_Write(pca->hi2c, pca->address, PCA9685_MODE2, I2C_MEMADD_SIZE_8BIT, &cmd, 1, 1);
-	// Load Registers in Memory
-	status = pca9865_load(pca);
+	status = HAL_I2C_Mem_Read(pca->hi2c, pca->address, PCA9685_MODE1, I2C_MEMADD_SIZE_8BIT, &oldmode, 1, 1);
+	oldmode |= PCA9685_MODE1_SLEEP;
+	status = HAL_I2C_Mem_Write(pca->hi2c, pca->address, PCA9685_MODE1, I2C_MEMADD_SIZE_8BIT, &oldmode, 1, 1);
+	HAL_Delay(PCA9685_MODE1_RESTART_WAIT);
+	// Restart
+	// status = pca9865_restart(pca);
+	// Set PRE_SCALE
+	if(status == HAL_OK)
+		status = pca9865_set_prescale(pca, PCA9685_SERVO_PRESCALE);
+
+	// Clear RESTART by writing '1' to it.
+	status = HAL_I2C_Mem_Read(pca->hi2c, pca->address, PCA9685_MODE1, I2C_MEMADD_SIZE_8BIT, &oldmode, 1, 1);
+	if(oldmode & PCA9685_MODE1_RESTART)
+		status = HAL_I2C_Mem_Write(pca->hi2c, pca->address, PCA9685_MODE1, I2C_MEMADD_SIZE_8BIT, &oldmode, 1, 1);
+
+	if(status == HAL_OK)
+		// Load Registers in Memory
+		status = pca9865_load(pca);
+
 	if(pca->MODE1 != (PCA9685_MODE1_INITIAL_VALUE | PCA9685_MODE1_AI))
 		return HAL_ERROR;
 	if(pca->MODE2 != PCA9685_MODE2_INITIAL_VALUE)
 		return HAL_ERROR;
 
-	// Restart
-	status = pca9865_restart(pca);
-	// Set PRE_SCALE
-	if(status == HAL_OK)
-		status = pca9865_set_prescale(pca, PCA9685_SERVO_PRESCALE);
 	return status;
 }
 
@@ -44,14 +56,14 @@ HAL_StatusTypeDef pca9865_restart(pca9685_t *pca)
 
 	// If RESTART, clear SLEEP and wait 500us
 	if ((status == HAL_OK) && (oldmode & PCA9685_MODE1_RESTART)) {
-		oldmode |= ~PCA9685_MODE1_SLEEP;
+		oldmode &= ~PCA9685_MODE1_SLEEP;
 		status = HAL_I2C_Mem_Write(pca->hi2c, pca->address, PCA9685_MODE1, I2C_MEMADD_SIZE_8BIT, &oldmode, 1, 1);
 		HAL_Delay(PCA9685_MODE1_RESTART_WAIT);
 	}
 	if (status == HAL_OK)
 	{
 		// Set RESTART mode.
-		oldmode &= PCA9685_MODE1_RESTART;
+		oldmode |= PCA9685_MODE1_RESTART;
 		status = HAL_I2C_Mem_Write(pca->hi2c, pca->address, PCA9685_MODE1, I2C_MEMADD_SIZE_8BIT, &oldmode, 1, 1);
 	}
 	return status;
@@ -66,7 +78,7 @@ HAL_StatusTypeDef pca9865_set_prescale(pca9685_t *pca, uint8_t prescale)
 	status = HAL_I2C_Mem_Read(pca->hi2c, pca->address, PCA9685_MODE1, I2C_MEMADD_SIZE_8BIT, &oldmode, 1, 1);
 	if(status == HAL_OK)
 	{
-		oldmode &= PCA9685_MODE1_SLEEP;
+		oldmode |= PCA9685_MODE1_SLEEP;
 		// Enter Sleep Mode
 		status = HAL_I2C_Mem_Write(pca->hi2c, pca->address, PCA9685_MODE1, I2C_MEMADD_SIZE_8BIT, &oldmode, 1, 1);
 		if (status == HAL_OK) {
@@ -74,7 +86,7 @@ HAL_StatusTypeDef pca9865_set_prescale(pca9685_t *pca, uint8_t prescale)
 			status = HAL_I2C_Mem_Write(pca->hi2c, pca->address, PCA9685_PRE_SCALE, I2C_MEMADD_SIZE_8BIT, &prescale, 1, 1);
 			if(status == HAL_OK) {
 				// Restore Previous Mode
-				oldmode |= ~PCA9685_MODE1_SLEEP;
+				oldmode &= ~PCA9685_MODE1_SLEEP;
 				status = HAL_I2C_Mem_Write(pca->hi2c, pca->address, PCA9685_MODE1, I2C_MEMADD_SIZE_8BIT, &oldmode, 1, 1);
 			}
 		}
@@ -88,10 +100,18 @@ HAL_StatusTypeDef  pca9865_pwm(pca9685_t *pca,  uint8_t num, uint16_t on, uint16
 	HAL_StatusTypeDef status;
 
 	pca9685_led_t *led = &(pca->led[num]);
-	led->LED_ON_L = on & 0x00FF;
-	led->LED_ON_H = (on>>8) && 0x0F;
-	led->LED_OFF_L = off & 0x00FF;
-	led->LED_OFF_H = (off>>8) && 0x0F;
+	if(off == 0) {
+		led->LED_OFF_H = PCA9685_LED_FULL_OFF;
+	}
+	else if (on >= PCA9685_PWM_MAX){
+		led->LED_ON_H = PCA9685_LED_FULL_ON;
+	}
+	else {
+		led->LED_ON_L = on & 0x00FF;
+		led->LED_ON_H = (on>>8) && 0x0F;
+		led->LED_OFF_L = off & 0x00FF;
+		led->LED_OFF_H = (off>>8) && 0x0F;
+	}
 
 	pca9685_led_t led_mem;
 
@@ -117,7 +137,12 @@ HAL_StatusTypeDef  pca9865_servo(pca9685_t *pca,  uint8_t num, double angle)
 
 
 HAL_StatusTypeDef  pca9865_load(pca9685_t *pca) {
-	return  HAL_I2C_Mem_Read(pca->hi2c, pca->address, PCA9685_MODE1, I2C_MEMADD_SIZE_8BIT, &(pca->pca9685_reg[0]), PCA9685_REGS, 100);
+	HAL_StatusTypeDef status = HAL_I2C_Mem_Read(pca->hi2c, pca->address, PCA9685_MODE1, I2C_MEMADD_SIZE_8BIT,
+			         &(pca->pca9685_reg[0]), PCA9685_REGS, 100);
+	if(status == HAL_OK)
+		status = HAL_I2C_Mem_Read(pca->hi2c, pca->address, PCA9685_ALL_LED_ON_L, I2C_MEMADD_SIZE_8BIT,
+					         &(pca->ALL_LED), PCA9685_LAST_REGS, 100);
+	return status;
 }
 
 

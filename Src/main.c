@@ -28,6 +28,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "printf-stdarg.h"
 #include "pca9685.h"
 /* USER CODE END Includes */
 
@@ -97,15 +98,19 @@ int main(void)
   /* USER CODE BEGIN 2 */
   pca9685_t servoDriver = {0};
   status = pca9865_init(&servoDriver, &hi2c1, PCA9685_DEFAULT_ADDRESS);
-  status = pca9865_load(&servoDriver);
   if(status == HAL_OK)
-	  HAL_UART_Transmit(&huart3, (uint8_t *) "SERVO DRIVER OK\n", 16, 10);
+	  printf("%s\r\n","SERVO DRIVER OK");
   else
-	  HAL_UART_Transmit(&huart3, (uint8_t *) "SERVO DRIVER BAD\n", 17, 10);
+	  printf("%s\r\n","SERVO DRIVER BAD");
+
+  status = pca9865_load(&servoDriver);
 
   uint8_t servo = 0;
+  uint8_t prescale = 0;
+  status = HAL_I2C_Mem_Read(&hi2c1, servoDriver.address, PCA9685_PRE_SCALE, I2C_MEMADD_SIZE_8BIT, &prescale, 1, 100);
   /* USER CODE END 2 */
-
+  printf("ServoDriver.MODE1 = %d\r\n", servoDriver.MODE1);
+  printf("ServoDriver.PRE_SCALE = %d\r\n", prescale);
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -120,12 +125,20 @@ int main(void)
 	  //HAL_Delay(1000);
 	  //status = pca9865_servo(&servoDriver,  0,  95);
 	  //HAL_Delay(1000);
-	  for(servo=0; servo<2;servo++) {
-		  pca9865_pwm(&servoDriver, servo, 0, 375);
-		  HAL_Delay(500);
-		  pca9865_pwm(&servoDriver, servo, 0, 0);
-		  HAL_Delay(250);
+//	  for(servo=0; servo<16;servo++) {
+//		  printf("Spinning servo %d\r\n", servo);
+//		  pca9865_pwm(&servoDriver, servo, 0, 375);
+//		  HAL_Delay(1000);
+//		  printf("Stopping servo %d\r\n", servo);
+//		  pca9865_pwm(&servoDriver, servo, 0, 0);
+//	  }
+	  for(int i=PCA9685_OFF_MIN; i<PCA9685_OFF_MAX; i+=10){
+		  pca9865_pwm(&servoDriver, servo, 0, i);
+		  HAL_Delay(25);
 	  }
+	  pca9865_pwm(&servoDriver, servo, 0, 0);
+	  HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+	  HAL_Delay(500);
   }
   /* USER CODE END 3 */
 }

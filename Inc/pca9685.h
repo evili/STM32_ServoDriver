@@ -6,10 +6,13 @@
 
 #define PCA9685_DEFAULT_ADDRESS 0x80
 #define PCA9685_REGS 70
+#define PCA9685_LAST_REGS 6
 #define PCA9685_PWMS 16
 #define PCA9685_FREQ 25000000
 #define PCA9685_SERVO_FREQ 50
 #define PCA9685_SERVO_PRESCALE  121u // == ((PCA9685_SERVO_FREQ) /((1ul<<12)* (PCA9685_SERVO_FREQ))-1)
+#define PCA9685_PWM_PRECISION (12)
+#define PCA9685_PWM_MAX       (1<<PCA9685_PWM_PRECISION) // This is 4096
 
 #define PCA9685_MODE1         0x00u
 #define PCA9685_MODE1_RESTART 0x80u
@@ -36,12 +39,18 @@
 #define PCA9685_SUBADR3 0x04
 #define PCA9685_ALLCALL 0x05
 
-#define PCA9685_ALL_LED   0xFA
+#define PCA9685_ALL_LED_ON_L    0xFA
+#define PCA9685_ALL_LED_ON_H    0xFB
+#define PCA9685_ALL_LED_OFF_L   0xFC
+#define PCA9685_ALL_LED_OFF_H   0xFD
+
 #define PCA9685_PRE_SCALE 0xFE
 #define PCA9685_TEST_MODE 0xFF
 
 
 #define PCA9685_LED_0_ON_L  0x06u
+#define PCA9685_LED_FULL_ON  0x10u
+#define PCA9685_LED_FULL_OFF 0x10u
 
 // Initial values after reset
 #define PCA9685_MODE1_INITIAL_VALUE 0x11u
@@ -101,6 +110,9 @@ typedef struct pca9685_s {
 			pca9685_led_t led[PCA9685_PWMS];
 		};
 	};
+	pca9685_led_t ALL_LED;
+	uint8_t PRE_SCALE;
+	uint8_t TEST_MODE;
 } pca9685_t;
 
 HAL_StatusTypeDef pca9865_init(pca9685_t *pca, I2C_HandleTypeDef *hi2c, uint8_t address);
