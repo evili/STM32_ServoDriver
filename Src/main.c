@@ -97,15 +97,15 @@ int main(void)
   MX_USB_OTG_FS_PCD_Init();
   /* USER CODE BEGIN 2 */
   pca9685_t servoDriver = {0};
-  status = pca9865_init(&servoDriver, &hi2c1, PCA9685_DEFAULT_ADDRESS);
+  status = pca9685_init(&servoDriver, &hi2c1, PCA9685_DEFAULT_ADDRESS);
   if(status == HAL_OK)
 	  printf("%s\r\n","SERVO DRIVER OK");
   else
 	  printf("%s\r\n","SERVO DRIVER BAD");
 
-  status = pca9865_load(&servoDriver);
+  status = pca9685_load(&servoDriver);
 
-  uint8_t servo = 0;
+  uint8_t servo = 7;
   uint8_t prescale = 0;
   status = HAL_I2C_Mem_Read(&hi2c1, servoDriver.address, PCA9685_PRE_SCALE, I2C_MEMADD_SIZE_8BIT, &prescale, 1, 100);
   /* USER CODE END 2 */
@@ -119,26 +119,31 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  //status = pca9865_servo(&servoDriver,  0,  85);
+	  //status = pca9685_servo(&servoDriver,  0,  85);
 	  //HAL_Delay(1000);
-	  //status = pca9865_servo(&servoDriver,  0,  90);
+	  //status = pca9685_servo(&servoDriver,  0,  90);
 	  //HAL_Delay(1000);
-	  //status = pca9865_servo(&servoDriver,  0,  95);
+	  //status = pca9685_servo(&servoDriver,  0,  95);
 	  //HAL_Delay(1000);
 //	  for(servo=0; servo<16;servo++) {
 //		  printf("Spinning servo %d\r\n", servo);
-//		  pca9865_pwm(&servoDriver, servo, 0, 375);
-//		  HAL_Delay(1000);
+//		  pca9685_pwm(&servoDriver, servo, 0, 275);
+//		  HAL_Delay(200);
+//		  pca9685_pwm(&servoDriver, servo, 0, 375);
+//		  HAL_Delay(200);
+//		  pca9685_pwm(&servoDriver, servo, 0, 475);
+//		  HAL_Delay(200);
 //		  printf("Stopping servo %d\r\n", servo);
-//		  pca9865_pwm(&servoDriver, servo, 0, 0);
+//		  pca9685_pwm(&servoDriver, servo, 0, 0);
 //	  }
-	  for(int i=PCA9685_OFF_MIN; i<PCA9685_OFF_MAX; i+=10){
-		  pca9865_pwm(&servoDriver, servo, 0, i);
-		  HAL_Delay(25);
+	  for(int i=PCA9685_OFF_MIN; i<=PCA9685_OFF_MAX; i+=5){
+		  printf("Servo %d OFF %d\n", servo, i);
+		  pca9685_pwm(&servoDriver, servo, 0, i);
+		  HAL_Delay(200);
 	  }
-	  pca9865_pwm(&servoDriver, servo, 0, 0);
+	  // pca9685_pwm(&servoDriver, servo, 0, 0);
 	  HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
-	  HAL_Delay(500);
+	  HAL_Delay(5000);
   }
   /* USER CODE END 3 */
 }

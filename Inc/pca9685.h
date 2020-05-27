@@ -10,7 +10,7 @@
 #define PCA9685_PWMS 16
 #define PCA9685_FREQ 25000000
 #define PCA9685_SERVO_FREQ 50
-#define PCA9685_SERVO_PRESCALE  121u // == ((PCA9685_SERVO_FREQ) /((1ul<<12)* (PCA9685_SERVO_FREQ))-1)
+#define PCA9685_SERVO_PRESCALE  121u // == ((PCA9685_FREQ) /((1ul<<12)* (PCA9685_SERVO_FREQ))-1)
 #define PCA9685_PWM_PRECISION (12)
 #define PCA9685_PWM_MAX       (1<<PCA9685_PWM_PRECISION) // This is 4096
 
@@ -58,9 +58,13 @@
 
 
 #define PCA9685_MODE1_RESTART_WAIT 5
+#define PCA9685_MEM_WAIT 1
 
-#define PCA9685_OFF_MIN 150
-#define PCA9685_OFF_MAX 600
+#define PCA9685_PRESCALE_MIN 0x03u
+#define PCA9685_PRESCALE_MAX 0xFFu
+
+#define PCA9685_OFF_MIN 110
+#define PCA9685_OFF_MAX 495
 
 typedef struct pca9685_led_s {
 	union {
@@ -78,7 +82,7 @@ typedef struct pca9685_s {
 	I2C_HandleTypeDef *hi2c;
 	uint8_t address;
 	union {
-		volatile uint8_t pca9685_reg[PCA9685_REGS];
+		uint8_t pca9685_reg[PCA9685_REGS];
 		struct {
 			union {
 				uint8_t MODE1;
@@ -115,11 +119,13 @@ typedef struct pca9685_s {
 	uint8_t TEST_MODE;
 } pca9685_t;
 
-HAL_StatusTypeDef pca9865_init(pca9685_t *pca, I2C_HandleTypeDef *hi2c, uint8_t address);
-HAL_StatusTypeDef pca9865_restart(pca9685_t *pca);
-HAL_StatusTypeDef pca9865_set_prescale(pca9685_t *pca, uint8_t prescale);
-HAL_StatusTypeDef pca9865_load(pca9685_t *pca);
-HAL_StatusTypeDef pca9865_pwm(pca9685_t *pca,  uint8_t num, uint16_t on, uint16_t off);
-HAL_StatusTypeDef pca9865_servo(pca9685_t *pca,  uint8_t num, double angle);
+HAL_StatusTypeDef pca9685_init(pca9685_t *pca, I2C_HandleTypeDef *hi2c, uint8_t address);
+HAL_StatusTypeDef pca9685_restart(pca9685_t *pca);
+HAL_StatusTypeDef pca9685_sleep(pca9685_t *pca);
+HAL_StatusTypeDef pca9685_wakeup(pca9685_t *pca);
+HAL_StatusTypeDef pca9685_set_prescale(pca9685_t *pca, uint8_t prescale);
+HAL_StatusTypeDef pca9685_load(pca9685_t *pca);
+HAL_StatusTypeDef pca9685_pwm(pca9685_t *pca,  uint8_t num, uint16_t on, uint16_t off);
+HAL_StatusTypeDef pca9685_servo(pca9685_t *pca,  uint8_t num, double angle);
 
 #endif // __PCA9685_H__
